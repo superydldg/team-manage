@@ -237,6 +237,11 @@ class RedeemFlowService:
             logger.info(f"兑换前同步 Team {active_team_id} 状态...")
             await self.team_service.sync_team_info(active_team_id, db_session)
 
+            # --- 关键修复：确保阶段 0 产生的隐式事务已提交，否则接下来的 begin() 会报错 ---
+            if db_session.in_transaction():
+                await db_session.commit()
+            db_session.expire_all()
+
             team_id_final = None
             try:
                 # --- 阶段 1: 验证并占位 (短事务) ---
